@@ -24,7 +24,7 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
     -   Perform voice-based **calculations** (e.g., "3 plus 5").
     -   Take **screenshots** and save them with a custom name.
     -   Open your **camera**.
-    -   Check **Instagram profiles** and download the profile picture.
+    -   Check **Instagram profiles**.
 -   **😂 Entertainment**:
     -   Tells you a **joke**.
 -   **📊 System Monitoring**:
