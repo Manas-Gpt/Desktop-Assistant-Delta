@@ -10,8 +10,7 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
 -   **🖥️ System Automation**:
     -   Open applications (Notepad, Command Prompt).
     -   Control system power (Shutdown, Restart, Sleep).
-    -   Switch between open windows.
-    -   Hide or unhide all files in its current folder.
+    -   Switch between open windows (tab switching).
 -   **🌐 Web & Information**:
     -   Search **Wikipedia** and read summaries.
     -   Open websites like **Google**, **YouTube**, **Facebook**, **Instagram**, and **ChatGPT**.
@@ -19,7 +18,7 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
     -   Get your public **IP address**.
     -   Find your approximate **location** based on your IP.
 -   **🛠️ Productivity & Tools**:
-    -   Get the current **weather** for any city.
+    -   Get the current **weather** for your city.
     -   Send **emails**.
     -   Perform voice-based **calculations** (e.g., "3 plus 5").
     -   Take **screenshots** and save them with a custom name.
