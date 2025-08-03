@@ -1,11 +1,21 @@
 # Desktop-Assistant-Delta
 Delta: A powerful and extensible voice-controlled desktop assistant built with Python to automate your daily tasks.
-# 🤖 Desktop Assistant Delta
 
+# 🤖 Desktop Assistant Delta
 A comprehensive, voice-controlled desktop assistant built with Python. Delta is designed to perform a wide range of tasks—from simple web searches to system automation—all through voice commands. It features a graphical user interface (GUI) built with PyQt5.
 
-## ✨ Features
+## 📁 File Structure
+```
+/delta-app
+  |-- index.html (Your provided HTML file) 
+  |-- delta.py (The Python assistant script) 
+  |-- main.js (Electron's main process - you'll create this)  
+  |-- preload.js (Electron's preload script - you'll create this) 
+  |-- package.json 
+  |-- /node_modules - directory - Installed dependencies (npm install electron)
+```
 
+## ✨ Features
 -   **🗣️ Voice Control**: Greets you and listens for commands.
 -   **🖥️ System Automation**:
     -   Open applications (Notepad, Command Prompt).
@@ -30,7 +40,6 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
     -   Reports current **CPU usage**, **RAM usage**, and **battery percentage**.
 
 ## Core Libraries
-
 | Module               | Description                                |
 |----------------------|--------------------------------------------|
 | `pyttsx3`            | Text-to-speech conversion                  |
@@ -53,7 +62,6 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
 | `BeautifulSoup`      | Web scraping                               |
 
 ### GUI Modules
-
 - `PyQt5.QtCore`
 - `PyQt5.QtGui`
 - `PyQt5.QtWidgets`
@@ -61,10 +69,8 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
 ---
 
 ## 🧩 GUI Components (PyQt5)
-
 - **Main Thread** for updating time
 - **Delta Thread** for continuous voice command listening
 - **Buttons** to start/close assistant
 - **Labels** for displaying animations (GIFs)
 - **Text browser** for current time display
-
