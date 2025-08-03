@@ -29,3 +29,42 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
 -   **📊 System Monitoring**:
     -   Reports current **CPU usage**, **RAM usage**, and **battery percentage**.
 
+## Core Libraries
+
+| Module               | Description                                |
+|----------------------|--------------------------------------------|
+| `pyttsx3`            | Text-to-speech conversion                  |
+| `speech_recognition` | Voice input recognition                    |
+| `webbrowser`         | Open URLs in a browser                     |
+| `wikipedia`          | Wikipedia search                           |
+| `requests`           | Make API and web requests                  |
+| `pywhatkit`          | Send WhatsApp messages, play YouTube       |
+| `pyjokes`            | Generate jokes                             |
+| `PyPDF2`             | Read PDF documents                         |
+| `instaloader`        | Instagram profile and media downloader     |
+| `cv2` (OpenCV)       | Camera interface                           |
+| `psutil`             | System resource monitoring                 |
+| `pyautogui`          | Automation and screenshot                  |
+| `datetime`, `time`   | Handle date/time                           |
+| `os`, `sys`          | System operations                          |
+| `smtplib`            | Email sending with SMTP                    |
+| `operator`           | Arithmetic operator mapping                |
+| `urllib.parse`       | For encoding YouTube Music search URL      |
+| `BeautifulSoup`      | Web scraping                               |
+
+### GUI Modules
+
+- `PyQt5.QtCore`
+- `PyQt5.QtGui`
+- `PyQt5.QtWidgets`
+
+---
+
+## 🧩 GUI Components (PyQt5)
+
+- **Main Thread** for updating time
+- **Delta Thread** for continuous voice command listening
+- **Buttons** to start/close assistant
+- **Labels** for displaying animations (GIFs)
+- **Text browser** for current time display
+
