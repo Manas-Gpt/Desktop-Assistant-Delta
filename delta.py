@@ -17,307 +17,323 @@ import cv2
 import instaloader
 import PyPDF2
 import operator
-
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow
+import urllib.parse
+from PyQt5.QtCore import QThread, pyqtSignal, QTimer, QTime, Qt
 from PyQt5.QtGui import QMovie
+from PyQt5.QtWidgets import QApplication, QMainWindow
 
-# ========================== LOCAL IMPORTS =================================
-# Import your UI and config files. Ensure they are in the same directory.
-from jarvisUi import Ui_jarvisUi
-import config
+# ============================= ENGINE SETUP =================================
+# Initialize the text-to-speech engine
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+engine.setProperty('voices', voices[0].id)
 
-# ============================= ASSISTANT THREAD =============================
-class AssistantThread(QThread):
-    """
-    Runs the assistant's core logic in a separate thread to prevent the GUI from freezing.
-    """
-    # Signals to communicate with the main GUI thread
-    assistant_spoke = pyqtSignal(str)
-    user_spoke = pyqtSignal(str)
+def speak(audio):
+    """Speaks the given text."""
+    engine.say(audio)
+    engine.runAndWait()
 
-    def __init__(self):
-        super().__init__()
-        # --- Initialize Engines Once ---
-        self.engine = pyttsx3.init('sapi5')
-        voices = self.engine.getProperty('voices')
-        self.engine.setProperty('voice', voices[0].id)
-        
-        self.recognizer = sr.Recognizer()
+# ============================ MAIN GUI THREAD ===============================
+# This class is for updating the time on the GUI. It's kept separate.
+class MainThread(QThread):
+    update_time = pyqtSignal(str)
 
     def run(self):
-        """The main loop for the assistant."""
-        self.wish_user()
         while True:
-            query = self.take_command()
-            if query == "none":
-                continue
+            current_time = QTime.currentTime().toString(Qt.DefaultLocaleLongDate)
+            self.update_time.emit(current_time)
+            time.sleep(1) # Update time every second
 
-            # --- Command to Function Mapping ---
-            command_map = {
-                "notepad": self.open_notepad,
-                "command prompt": self.open_cmd,
-                "camera": self.open_camera,
-                "weather": self.get_weather,
-                "ip address": self.get_ip_address,
-                "wikipedia": self.search_wikipedia,
-                "open youtube": lambda: webbrowser.open("youtube.com"),
-                "open google": self.search_google,
-                "send message": self.send_whatsapp,
-                "play song": self.play_on_youtube,
-                "system status": self.get_system_status,
-                "tell me a joke": self.tell_joke,
-                "shut down": self.shutdown_system,
-                "restart": self.restart_system,
-                "sleep": self.sleep_system,
-                "switch the window": self.switch_window,
-                "where am i": self.find_location,
-                "instagram profile": self.check_instagram_profile,
-                "take screenshot": self.take_screenshot,
-                "read pdf": self.read_pdf,
-                "calculate": self.calculate,
-                "hide files": lambda: os.system("attrib +h /s /d"),
-                "show files": lambda: os.system("attrib -h /s /d"),
-                "no thanks": self.exit_assistant,
-                "exit": self.exit_assistant,
-            }
-
-            executed = False
-            for command, func in command_map.items():
-                if command in query:
-                    func()
-                    executed = True
-                    break
-            
-            if not executed:
-                self.speak("I'm not sure how to do that yet.")
-
-    # ========================== CORE METHODS ================================
-    def speak(self, text):
-        """Makes the assistant speak the given text."""
-        self.engine.say(text)
-        self.engine.runAndWait()
-        self.assistant_spoke.emit(f"Delta: {text}")
-
-    def take_command(self):
-        """Listens for a command and returns it as a string."""
-        with sr.Microphone() as source:
-            print("Listening...")
-            self.recognizer.pause_threshold = 1
-            audio = self.recognizer.listen(source)
-        try:
-            print("Recognizing...")
-            query = self.recognizer.recognize_google(audio, language='en-in')
-            print(f"User said: {query}")
-            self.user_spoke.emit(f"You: {query}")
-            return query.lower()
-        except Exception as e:
-            self.speak("Say that again please...")
-            return "none"
-
-    # ========================== COMMAND FUNCTIONS ===========================
-    def wish_user(self):
-        hour = datetime.datetime.now().hour
-        if 5 <= hour < 12: greeting = "Good Morning"
-        elif 12 <= hour < 17: greeting = "Good Afternoon"
-        else: greeting = "Good Evening"
-        self.speak(f"{greeting}, Sir. I am Delta. How can I help you?")
-
-    def exit_assistant(self):
-        self.speak("Goodbye, Sir!")
-        sys.exit()
-
-    def open_notepad(self):
-        os.startfile("notepad.exe")
-
-    def open_cmd(self):
-        os.system("start cmd")
-        
-    def open_camera(self):
-        cap = cv2.VideoCapture(0)
-        while True:
-            ret, img = cap.read()
-            cv2.imshow('webcam', img)
-            if cv2.waitKey(1) & 0xFF == 27: # Press ESC to close
-                break
-        cap.release()
-        cv2.destroyAllWindows()
-    
-    def get_ip_address(self):
-        try:
-            ip = requests.get('https://api.ipify.org').text
-            self.speak(f"Your IP address is {ip}")
-        except requests.ConnectionError:
-            self.speak("Sorry, I'm unable to connect to the internet to check your IP address.")
-
-    def search_wikipedia(self):
-        self.speak("What should I search for on Wikipedia?")
-        topic = self.take_command()
-        if topic != "none":
-            try:
-                self.speak(f"Searching for {topic} on Wikipedia...")
-                results = wi.summary(topic, sentences=2)
-                self.speak("According to Wikipedia...")
-                self.speak(results)
-            except Exception:
-                self.speak(f"Sorry, I couldn't find any results for {topic}.")
-
-    def search_google(self):
-        self.speak("What should I search on Google?")
-        search_term = self.take_command()
-        if search_term != 'none':
-            webbrowser.open(f"https://google.com/search?q={search_term}")
-    
-    def play_on_youtube(self):
-        self.speak("What song or video should I play?")
-        media = self.take_command()
-        if media != 'none':
-            kit.playonyt(media)
-            
-    def send_whatsapp(self):
-        self.speak("What message should I send?")
-        message = self.take_command()
-        if message != 'none':
-            now = datetime.datetime.now()
-            # Send one minute from now
-            kit.sendwhatmsg(config.WHATSAPP_PHONE_NUMBER, message, now.hour, now.minute + 1)
-            self.speak("Message scheduled.")
-
-    def get_weather(self):
-        self.speak("Which city's weather would you like?")
-        city = self.take_command()
-        if city != "none":
-            url = f""
-            try:
-                data = requests.get(url).json()
-                if data["cod"] == 200:
-                    temp = data["main"]["temp"]
-                    desc = data["weather"][0]["description"]
-                    self.speak(f"The weather in {city} is {desc} with a temperature of {temp} degrees Celsius.")
-                else:
-                    self.speak("Sorry, I couldn't find weather data for that city.")
-            except Exception:
-                self.speak("Sorry, I couldn't connect to the weather service.")
-    
-    def get_system_status(self):
-        battery = psutil.sensors_battery()
-        self.speak(f"Battery is at {battery.percent} percent.")
-        self.speak(f"CPU is at {psutil.cpu_percent()} percent utilization.")
-        self.speak(f"RAM usage is at {psutil.virtual_memory().percent} percent.")
-
-    def tell_joke(self):
-        joke = pyjokes.get_joke()
-        self.speak(joke)
-
-    def shutdown_system(self):
-        self.speak("Shutting down the system.")
-        os.system("shutdown /s /t 5")
-    
-    def restart_system(self):
-        self.speak("Restarting the system.")
-        os.system("shutdown /r /t 5")
-
-    def sleep_system(self):
-        self.speak("Putting the system to sleep.")
-        os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
-
-    def switch_window(self):
-        pyautogui.keyDown("alt")
-        pyautogui.press("tab")
-        time.sleep(1)
-        pyautogui.keyUp("alt")
-
-    def take_screenshot(self):
-        self.speak("What should I name the screenshot file?")
-        name = self.take_command()
-        if name != 'none':
-            self.speak("Taking screenshot.")
-            time.sleep(1)
-            img = pyautogui.screenshot()
-            img.save(f"{name}.png")
-            self.speak("Screenshot saved.")
-
-    def find_location(self):
-        self.speak("Let me check your location.")
-        try:
-            ip = requests.get('https://api.ipify.org').text
-            url = f'https://get.geojs.io/v1/ip/geo/{ip}.json'
-            geo_data = requests.get(url).json()
-            city = geo_data['city']
-            country = geo_data['country']
-            self.speak(f"I believe we are in {city}, {country}.")
-        except Exception:
-            self.speak("Sorry, I'm having trouble finding our location.")
-
-    def check_instagram_profile(self):
-        self.speak("Whose profile should I look for?")
-        name = self.take_command()
-        if name != 'none':
-            self.speak(f"Searching for {name} on Instagram.")
-            webbrowser.open(f"instagram.com/{name}")
-
-    def read_pdf(self):
-        self.speak("Reading PDF.")
-        try:
-            book = open(config.PDF_FILE_PATH, 'rb')
-            pdf_reader = PyPDF2.PdfFileReader(book)
-            self.speak(f"This book has {pdf_reader.numPages} pages.")
-            self.speak("Which page should I read?")
-            page_num_str = self.take_command()
-            try:
-                page_num = int(page_num_str)
-                page = pdf_reader.getPage(page_num - 1)
-                text = page.extractText()
-                self.speak(text)
-            except ValueError:
-                self.speak("That's not a valid page number.")
-        except FileNotFoundError:
-            self.speak("Sorry, I could not find the PDF file. Please check the path in the config file.")
-    
-    def calculate(self):
-        self.speak("What should I calculate? For example, 5 plus 3.")
-        problem = self.take_command()
-        if problem != 'none':
-            # Basic calculation parsing
-            # This is a simplified implementation
-            try:
-                if 'plus' in problem:
-                    nums = problem.replace('plus', '').split()
-                    result = int(nums[0]) + int(nums[1])
-                    self.speak(f"The result is {result}.")
-                elif 'minus' in problem:
-                    # ... add other operators
-                    pass
-                else:
-                    self.speak("I can only do simple calculations right now.")
-            except:
-                self.speak("I couldn't understand the calculation.")
-
-# ================================ MAIN GUI ==================================
-class Main(QMainWindow):
-    """The main GUI window for the assistant."""
+# ============================= DELTA ASSISTANT THREAD =======================
+class DeltaThread(QThread):
+    """
+    Runs the assistant's core logic in a separate thread
+    to prevent the GUI from freezing.
+    """
     def __init__(self):
         super().__init__()
-        self.ui = Ui_jarvisUi()
-        self.ui.setupUi(self)
-        
-        # Connect buttons to functions
-        self.ui.pushButton_start.clicked.connect(self.start_task)
-        self.ui.pushButton_exit.clicked.connect(self.close)
+        self.query = ""
 
-    def start_task(self):
-        # Setup and start GIF animation
-        self.ui.movie = QMovie(config.GUI_GIF_PATH)
-        self.ui.label_gif.setMovie(self.ui.movie)
-        self.ui.movie.start()
+    def takecommand(self):
+        """Listens for a command and returns it as a string."""
+        r = sr.Recognizer()
+        with sr.Microphone() as source:
+            print('Listening...')
+            r.pause_threshold = 1
+            audio = r.listen(source)
+        try:
+            print("Recognizing...")
+            self.query = r.recognize_google(audio, language='en-in')
+            print(f"User said: {self.query}")
+        except Exception as e:
+            speak("Say that again please...")
+            return "none"
+        return self.query.lower()
+
+    def wish(self):
+        """Greets the user based on the time of day."""
+        hour = int(datetime.datetime.now().hour)
+        if 5 <= hour < 12:
+            speak("Good morning")
+        elif 12 <= hour < 18:
+            speak("Good afternoon")
+        else:
+            speak("Good evening")
+        speak("I am Delta. Please tell me how I can help you.")
+
+    def get_weather(self):
+        """Fetches and speaks the weather for a given city."""
+        speak("Please tell me the city name.")
+        city = self.takecommand()
+        if city and city != "none":
+            # IMPORTANT: You need to replace "YOUR_API_KEY" with your actual OpenWeatherMap API key
+            api_key = "YOUR_API_KEY"
+            base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+            try:
+                response = requests.get(base_url)
+                data = response.json()
+                if data["cod"] == 200:
+                    temp = data["main"]["temp"]
+                    description = data["weather"][0]["description"]
+                    weather_report = (f"The current temperature in {city} is {temp} degrees Celsius "
+                                      f"with {description}.")
+                    speak(weather_report)
+                else:
+                    speak("Sorry, I couldn't fetch the weather details. Please check the city name.")
+            except Exception as e:
+                speak("An error occurred while fetching the weather data.")
+
+    def pdf_reader(self):
+        """Reads a specified page from a PDF file."""
+        # This requires manual console input for the page number.
+        try:
+            # Make sure a PDF named 'py3.pdf' is in the same directory as the script
+            book = open('py3.pdf', 'rb')
+            pdfReader = PyPDF2.PdfFileReader(book)
+            pages = pdfReader.numPages
+            speak(f"This book has {pages} pages. Please enter the page number in the console.")
+            pg = int(input("Please enter the page number: "))
+            if 1 <= pg <= pages:
+                page = pdfReader.getPage(pg - 1) # Page numbers are 0-indexed
+                text = page.extractText()
+                speak(text)
+            else:
+                speak("Invalid page number.")
+        except FileNotFoundError:
+            speak("Sorry, I could not find the PDF file named 'py3.pdf'.")
+        except Exception as e:
+            speak("An error occurred while reading the PDF.")
+            print(e)
+            
+    def run(self):
+        """The main loop for the assistant."""
+        self.wish()
+        while True:
+            query = self.takecommand()
+
+            if "notepad" in query:
+                os.startfile("C:/Windows/notepad.exe")
+
+            elif "open command prompt" in query:
+                os.system("start cmd")
+
+            elif "camera" in query:
+                cap = cv2.VideoCapture(0)
+                while True:
+                    ret, img = cap.read()
+                    cv2.imshow('webcam', img)
+                    # Press 'ESC' key to exit the camera view
+                    if cv2.waitKey(50) & 0xFF == 27:
+                        break
+                cap.release()
+                cv2.destroyAllWindows()
+
+            elif "weather" in query:
+                self.get_weather()
+
+            elif "ip address" in query:
+                try:
+                    ip = requests.get('https://api.ipify.org').text
+                    speak(f"Your IP address is {ip}")
+                except requests.ConnectionError:
+                    speak("Sorry, I am unable to connect to the internet.")
+
+            elif "wikipedia" in query:
+                speak("What would you like to know from Wikipedia?")
+                search_query = self.takecommand()
+                if search_query and search_query != "none":
+                    try:
+                        speak("Searching Wikipedia...")
+                        results = wi.summary(search_query, sentences=2)
+                        speak("According to Wikipedia")
+                        speak(results)
+                    except Exception:
+                        speak("Sorry, I couldn't retrieve information for that query.")
+
+            elif "open youtube" in query:
+                webbrowser.open("https://www.youtube.com")
+            
+            elif "open google" in query:
+                speak("What should I search on Google?")
+                cm = self.takecommand()
+                if cm and cm != "none":
+                    webbrowser.open(f"https://google.com/search?q={cm}")
+
+            elif "send message" in query:
+                speak("Sending WhatsApp message.")
+                # Sends a message to the specified number 1 minute from now
+                kit.sendwhatmsg("+91xxxxxxxxxx", "This is a testing protocol", datetime.datetime.now().hour, datetime.datetime.now().minute + 1)
+
+            elif "play song on youtube" in query:
+                speak("What song would you like to hear?")
+                song = self.takecommand()
+                if song and song != 'none':
+                    kit.playonyt(song)
+
+            elif "system status" in query:
+                battery = psutil.sensors_battery()
+                cpu_usage = psutil.cpu_percent()
+                ram_usage = psutil.virtual_memory().percent
+                speak(f"Battery is at {battery.percent} percent")
+                speak(f"CPU usage is {cpu_usage} percent")
+                speak(f"RAM usage is {ram_usage} percent")
+
+            # --- JOKE FUNCTIONALITY ---
+            elif "tell me a joke" in query:
+                joke = pyjokes.get_joke()
+                speak(joke)
+                print(joke)
+
+            elif "shut down the system" in query:
+                speak("Shutting down the system.")
+                os.system("shutdown /s /t 5")
+
+            elif "restart the system" in query:
+                speak("Restarting the system.")
+                os.system("shutdown /r /t 5")
+
+            elif "sleep the system" in query:
+                speak("Putting the system to sleep.")
+                os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
+
+            elif "switch the window" in query:
+                pyautogui.keyDown("alt")
+                pyautogui.press("tab")
+                time.sleep(1)
+                pyautogui.keyUp("alt")
+
+            elif "where am i" in query or "where are we" in query:
+                speak("Wait sir, let me check.")
+                try:
+                    ipAdd = requests.get('https://api.ipify.org').text
+                    url = f'https://get.geojs.io/v1/ip/geo/{ipAdd}.json'
+                    geo_data = requests.get(url).json()
+                    city = geo_data['city']
+                    country = geo_data['country']
+                    speak(f"I believe we are in {city} city of {country} country.")
+                except Exception as e:
+                    speak("Sorry sir, I am not able to find where we are due to a network issue.")
+
+            elif "instagram profile" in query:
+                speak("Sir, please enter the username in the console.")
+                name = input("Enter username here: ")
+                webbrowser.open(f"https://www.instagram.com/{name}")
+                speak(f"Sir, here is the profile of the user {name}")
+                speak("Would you like to download the profile picture?")
+                condition = self.takecommand()
+                if "yes" in condition:
+                    try:
+                        mod = instaloader.Instaloader()
+                        mod.download_profile(name, profile_pic_only=True)
+                        speak("Done. The profile picture is saved in the main folder.")
+                    except Exception as e:
+                        speak("Sorry, I was unable to download the profile picture.")
+
+            elif "take screenshot" in query:
+                speak("Sir, what should I name this screenshot file?")
+                name = self.takecommand()
+                if name and name != "none":
+                    speak("Please hold the screen, I am taking a screenshot.")
+                    time.sleep(2)
+                    img = pyautogui.screenshot()
+                    img.save(f"{name}.png")
+                    speak("The screenshot is saved in our main folder.")
+
+            elif "read pdf" in query:
+                self.pdf_reader()
+            
+            elif "calculate" in query:
+                speak("Say what you want to calculate. For example: 3 plus 3")
+                try:
+                    calc_string = self.takecommand()
+                    # A simple parser for basic arithmetic
+                    words = calc_string.split()
+                    op1 = int(words[0])
+                    op2 = int(words[2])
+                    operator_str = words[1].lower()
+
+                    if operator_str in ['plus', '+']:
+                        result = op1 + op2
+                    elif operator_str in ['minus', '-']:
+                        result = op1 - op2
+                    elif operator_str in ['times', 'x', 'multiply']:
+                        result = op1 * op2
+                    elif operator_str in ['divided', '/']:
+                        result = op1 / op2
+                    else:
+                        raise ValueError("Unknown operator")
+                        
+                    speak(f"The result is {result}")
+                    print(result)
+
+                except Exception:
+                    speak("I was unable to understand the calculation.")
+
+            elif "no thanks" in query or "exit" in query or "goodbye" in query:
+                speak("Thank you for using me. Have a good day, sir.")
+                sys.exit()
+
+# ================================ MAIN GUI CLASS ============================
+# NOTE: To run the GUI, you must have a 'deltaUi.py' file generated from a .ui file.
+# from deltaUi import Ui_deltaUi 
+
+class Main(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        # self.ui = Ui_deltaUi()
+        # self.ui.setupUi(self)
+        # self.ui.pushButton.clicked.connect(self.startTask)
+        # self.ui.pushButton_2.clicked.connect(self.close)
+
+    def startTask(self):
+        # self.ui.movie = QMovie("path/to/your/deltaAi.gif")
+        # self.ui.label.setMovie(self.ui.movie)
+        # self.ui.movie.start()
         
-        # Start the assistant logic in its own thread
-        self.assistant_thread = AssistantThread()
-        self.assistant_thread.start()
+        # Start the thread that runs the assistant's logic
+        self.delta_thread = DeltaThread()
+        self.delta_thread.start()
+        
+        # Start the thread to update the time on the GUI
+        # self.main_thread = MainThread()
+        # self.main_thread.update_time.connect(self.update_time_label)
+        # self.main_thread.start()
+
+    def update_time_label(self, current_time):
+        # Updates a label on the GUI with the current time
+        # self.ui.textBrowser_2.setText(current_time)
+        pass
 
 # ============================= SCRIPT ENTRY POINT ===========================
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = Main()
-    main_window.show()
-    sys.exit(app.exec_())
+    # To run the assistant without a GUI (in the console):
+    print("Starting Delta Assistant in console mode...")
+    assistant = DeltaThread()
+    assistant.run()
+
+    # To run with the PyQt5 GUI (uncomment the lines below):
+    # app = QApplication(sys.argv)
+    # delta_gui = Main()
+    # delta_gui.show()
+    # delta_gui.startTask() # Start the assistant thread after showing the window
+    # sys.exit(app.exec_())
