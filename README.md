@@ -7,10 +7,10 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
 ## 📁 File Structure
 ```
 /delta-app
-  |-- index.html (Your provided HTML file) 
-  |-- delta.py (The Python assistant script) 
-  |-- main.js (Electron's main process - you'll create this)  
-  |-- preload.js (Electron's preload script - you'll create this) 
+  |-- index.html 
+  |-- delta.py  
+  |-- main.js   
+  |-- preload.js  
   |-- package.json 
   |-- /node_modules - directory - Installed dependencies (npm install electron)
 ```
