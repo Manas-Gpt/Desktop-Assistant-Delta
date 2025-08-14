@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delta - Assistant Interface</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Orbitron', sans-serif; }
+    body { height: 100vh; background: linear-gradient(145deg, #0f0f0f, #1c1c1c); display: flex; justify-content: center; align-items: center; color: #fff; }
+    .container { background: rgba(30, 30, 30, 0.9); border-radius: 20px; box-shadow: 0 0 40px rgba(0, 255, 255, 0.3); padding: 40px; text-align: center; width: 400px; transition: all 0.3s ease-in-out; }
+    .status-icon { width: 60px; height: 60px; margin: 0 auto 20px; background: #ff4f5a; border-radius: 50%; box-shadow: 0 0 20px rgba(255, 0, 0, 0.7); transition: all 0.3s ease; }
+    h2 { margin-bottom: 20px; font-weight: 500; color: #00ffff; }
+    .clock { font-size: 2rem; margin: 10px 0; letter-spacing: 3px; color: #f5f5f5; }
+    .date { font-size: 1rem; color: #aaa; margin-bottom: 30px; }
+    .button-container { display: flex; justify-content: center; gap: 20px; }
+    button { color: #fff; border: none; padding: 12px 25px; font-size: 1rem; border-radius: 25px; cursor: pointer; transition: background-color 0.3s; }
+    button.start { background: #00b894; }
+    button.stop { background: #ff4f5a; }
+    button:hover { filter: brightness(1.2); }
+    button:disabled { background: #555; cursor: not-allowed; filter: brightness(1); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="status-icon"></div>
+    <h2 id="status">Assistant Offline</h2>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="date" id="date">Loading date...</div>
+    <div class="button-container">
+      <button class="start" id="startButton" onclick="startAssistant()">Start</button>
+      <button class="stop" id="stopButton" onclick="stopAssistant()" disabled>Stop</button>
+    </div>
+  </div>
+
+  <script>
+    const statusText = document.getElementById('status');
+    const statusIcon = document.querySelector('.status-icon');
+    const startBtn = document.getElementById('startButton');
+    const stopBtn = document.getElementById('stopButton');
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString();
+      document.getElementById('date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function startAssistant() {
+      window.electronAPI?.startAssistant();
+      statusText.textContent = 'Assistant Online';
+      statusIcon.style.background = '#00ffcc';
+      statusIcon.style.boxShadow = '0 0 20px #00ffcc';
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    }
+
+    function stopAssistant() {
+      window.electronAPI?.stopAssistant();
+      statusText.textContent = 'Assistant Offline';
+      statusIcon.style.background = '#ff4f5a';
+      statusIcon.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.7)';
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>

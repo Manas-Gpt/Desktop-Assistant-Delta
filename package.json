@@ -1,0 +1,15 @@
+{
+  "name": "delta-app",
+  "version": "1.0.0",
+  "description": "Delta Voice Assistant",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^31.0.1" 
+  }
+}
