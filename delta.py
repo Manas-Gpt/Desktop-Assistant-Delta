@@ -104,26 +104,64 @@ class DeltaThread(QThread):
                 speak("An error occurred while fetching the weather data.")
 
     def pdf_reader(self):
-        """Reads a specified page from a PDF file."""
-        # This requires manual console input for the page number.
+        """Tells Electron to open a PDF dialog and reads the selected file."""
         try:
-            # Make sure a PDF named 'py3.pdf' is in the same directory as the script
-            book = open('py3.pdf', 'rb')
-            pdfReader = PyPDF2.PdfFileReader(book)
-            pages = pdfReader.numPages
-            speak(f"This book has {pages} pages. Please enter the page number in the console.")
-            pg = int(input("Please enter the page number: "))
-            if 1 <= pg <= pages:
-                page = pdfReader.getPage(pg - 1) # Page numbers are 0-indexed
-                text = page.extractText()
-                speak(text)
-            else:
-                speak("Invalid page number.")
-        except FileNotFoundError:
-            speak("Sorry, I could not find the PDF file named 'py3.pdf'.")
+            print("OPEN_DIALOG::pdf")
+            sys.stdout.flush() 
+
+            filepath = sys.stdin.readline().strip()
+
+            if filepath:
+                book = open(filepath, 'rb')
+                # UPDATED: Use PdfReader instead of the old PdfFileReader
+                pdfReader = PyPDF2.PdfReader(book)
+                
+                # UPDATED: Use len(pdfReader.pages) instead of .numPages
+                pages = len(pdfReader.pages)
+                speak(f"This book has {pages} pages. Which page number should I read?")
+                
+                pg_str = self.takecommand()
+                if pg_str and pg_str.isdigit():
+                    pg_num = int(pg_str)
+                    if 1 <= pg_num <= pages:
+                        # UPDATED: Use pdfReader.pages[] instead of .getPage()
+                        page = pdfReader.pages[pg_num - 1]
+                        text = page.extract_text()
+                        speak("Here is the content from that page.")
+                        speak(text)
+                    else:
+                        speak("Sorry, that page number is out of range.")
+                else:
+                    speak("I didn't catch a valid page number.")
+
         except Exception as e:
-            speak("An error occurred while reading the PDF.")
-            print(e)
+            speak("An error occurred or no file was selected.")
+            print(f"PDF Reader Error: {e}")
+
+        except Exception as e:
+            speak("An error occurred or no file was selected.")
+            print(f"PDF Reader Error: {e}")
+    
+    def print_document(self):
+        """Tells Electron to open a document dialog and prints the selected file."""
+        try:
+            # Tell Electron to open a dialog for Word documents
+            print("OPEN_DIALOG::doc")
+            sys.stdout.flush()
+
+            # Wait for and read the file path sent back from Electron
+            filepath = sys.stdin.readline().strip()
+
+            if filepath and os.path.exists(filepath):
+                # This command sends the file to the default printer on Windows
+                os.startfile(filepath, "print")
+                speak(f"The document has been sent to your default printer.")
+            else:
+                speak("Sorry, the file path seems to be invalid or no file was selected.")
+
+        except Exception as e:
+            speak("I encountered an error while trying to print the document.")
+            print(f"Printing Error: {e}")
             
     def run(self):
         """The main loop for the assistant."""
@@ -259,8 +297,10 @@ class DeltaThread(QThread):
                     img.save(f"{name}.png")
                     speak("The screenshot is saved in our main folder.")
 
-            elif "read pdf" in query:
+            elif "read pdf" in query or "read a pdf" in query:
                 self.pdf_reader()
+            elif "print document" in query or "print a document" in query:
+                self.print_document()
             
             elif "calculate" in query:
                 speak("Say what you want to calculate. For example: 3 plus 3")
