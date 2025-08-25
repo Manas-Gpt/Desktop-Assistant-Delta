@@ -7,7 +7,15 @@ A comprehensive, voice-controlled desktop assistant built with Python. Delta is 
 ## 📁 File Structure
 ```
 /delta-app
-  |-- index.html 
+  |-- index.html
+  |--docs
+     |-- System Design
+     |-- Technical Design
+     |-- Logical Design
+     |-- Assumptions
+     |-- Productivity and tools
+     |-- System Automation
+     |-- Web and Information
   |-- delta.py  
   |-- main.js   
   |-- preload.js  
