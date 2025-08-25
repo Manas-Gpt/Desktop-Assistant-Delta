@@ -1,4 +1,4 @@
-# 🚀 Delta Desktop Assistant - Interactive System Design
+# 🚀 Delta Desktop Assistant - System Design
 
 > **Click on any section below to expand and explore the architecture in detail**
 
