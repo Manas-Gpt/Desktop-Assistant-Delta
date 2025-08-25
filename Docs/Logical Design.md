@@ -1,4 +1,4 @@
-# 🔧 Delta Assistant - Interactive Logical Design
+# 🔧 Delta Assistant - Logical Design
 
 *A deep dive into the application's workflow, states, and core logic architecture.*
 
