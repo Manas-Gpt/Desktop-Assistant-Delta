@@ -89,4 +89,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-// The extra '}' that was here has been removed.
