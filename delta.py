@@ -1,5 +1,7 @@
 # ================================== IMPORTS ==================================
 import sys
+import re
+import threading
 import os
 import time
 import datetime
@@ -29,9 +31,15 @@ voices = engine.getProperty('voices')
 engine.setProperty('voices', voices[0].id)
 
 def speak(audio):
-    """Speaks the given text."""
-    engine.say(audio)
-    engine.runAndWait()
+    """Speaks the given text and emits it to Electron as SAY::"""
+    try:
+        engine.say(audio)
+        engine.runAndWait()
+    except Exception:
+        # If TTS fails, continue emitting text to UI
+        pass
+    print(f"SAY::{audio}")
+    sys.stdout.flush()
 
 # ============================ MAIN GUI THREAD ===============================
 # This class is for updating the time on the GUI. It's kept separate.
@@ -102,6 +110,27 @@ class DeltaThread(QThread):
                     speak("Sorry, I couldn't fetch the weather details. Please check the city name.")
             except Exception as e:
                 speak("An error occurred while fetching the weather data.")
+
+    def get_weather_for_city(self, city):
+        """Fetch weather for a specific city (text chat)."""
+        if not city:
+            speak("Please provide a city name, for example: weather in Delhi")
+            return
+        api_key = "YOUR_API_KEY"
+        base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+        try:
+            response = requests.get(base_url)
+            data = response.json()
+            if data.get("cod") == 200:
+                temp = data["main"]["temp"]
+                description = data["weather"][0]["description"]
+                weather_report = (f"The current temperature in {city} is {temp} degrees Celsius "
+                                  f"with {description}.")
+                speak(weather_report)
+            else:
+                speak("Sorry, I couldn't fetch the weather details. Please check the city name.")
+        except Exception:
+            speak("An error occurred while fetching the weather data.")
 
     def pdf_reader(self):
         """Tells Electron to open a PDF dialog and reads the selected file."""
@@ -333,6 +362,83 @@ class DeltaThread(QThread):
                 speak("Thank you for using me. Have a good day, sir.")
                 sys.exit()
 
+    # -------------------------- TEXT CHAT HANDLER ---------------------------
+    def handle_text_command(self, text):
+        """Processes a text command coming from Electron (stdin)."""
+        if not text:
+            return
+        t = text.strip().lower()
+
+        # weather in <city>
+        m = re.search(r"weather in\s+(.+)$", t)
+        if m:
+            city = m.group(1).strip()
+            self.get_weather_for_city(city)
+            return
+
+        # wikipedia <topic>
+        m = re.search(r"^(wikipedia|wiki)\s+(.+)$", t)
+        if m:
+            topic = m.group(2).strip()
+            try:
+                speak("Searching Wikipedia...")
+                results = wi.summary(topic, sentences=2)
+                speak("According to Wikipedia")
+                speak(results)
+            except Exception:
+                speak("Sorry, I couldn't retrieve information for that query.")
+            return
+
+        # open youtube
+        if "open youtube" in t:
+            webbrowser.open("https://www.youtube.com")
+            speak("Opening YouTube")
+            return
+
+        # search / open google for <query>
+        m = re.search(r"(search|open google( for)?)\s+(.+)$", t)
+        if m:
+            q = m.group(3).strip()
+            webbrowser.open(f"https://google.com/search?q={q}")
+            speak(f"Searching Google for {q}")
+            return
+
+        # joke
+        if "joke" in t:
+            try:
+                joke = pyjokes.get_joke()
+                speak(joke)
+            except Exception:
+                speak("I couldn't fetch a joke right now.")
+            return
+
+        # simple calculate: e.g., calculate 3 plus 5
+        m = re.search(r"^calculate\s+(.*)$", t)
+        if m:
+            calc_string = m.group(1)
+            try:
+                words = calc_string.split()
+                op1 = int(words[0])
+                op2 = int(words[2])
+                operator_str = words[1].lower()
+                if operator_str in ['plus', '+']:
+                    result = op1 + op2
+                elif operator_str in ['minus', '-']:
+                    result = op1 - op2
+                elif operator_str in ['times', 'x', 'multiply', '*']:
+                    result = op1 * op2
+                elif operator_str in ['divided', '/', 'divide']:
+                    result = op1 / op2
+                else:
+                    raise ValueError("Unknown operator")
+                speak(f"The result is {result}")
+            except Exception:
+                speak("I couldn't parse that calculation. Try 'calculate 3 plus 3'")
+            return
+
+        # fallback
+        speak(f"You said: {text}. I can do things like 'weather in Delhi', 'wikipedia Ada Lovelace', 'search quantum computing', or 'joke'.")
+
 # ================================ MAIN GUI CLASS ============================
 # NOTE: To run the GUI, you must have a 'deltaUi.py' file generated from a .ui file.
 # from deltaUi import Ui_deltaUi 
@@ -366,9 +472,25 @@ class Main(QMainWindow):
 
 # ============================= SCRIPT ENTRY POINT ===========================
 if __name__ == "__main__":
-    # To run the assistant without a GUI (in the console):
-    print("Starting Delta Assistant in console mode...")
+    # Start stdin listener thread for TEXT:: messages from Electron
     assistant = DeltaThread()
+
+    def stdin_loop():
+        for raw in sys.stdin:
+            try:
+                line = raw.strip()
+                if not line:
+                    continue
+                if line.startswith('TEXT::'):
+                    text = line.replace('TEXT::', '', 1).strip()
+                    assistant.handle_text_command(text)
+            except Exception:
+                # Avoid crashing on malformed input
+                pass
+
+    threading.Thread(target=stdin_loop, daemon=True).start()
+
+    # Run the voice assistant loop (blocking)
     assistant.run()
 
     # To run with the PyQt5 GUI (uncomment the lines below):
