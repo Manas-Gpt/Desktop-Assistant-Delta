@@ -6,6 +6,10 @@ import os
 import time
 import datetime
 import webbrowser
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 import requests
 import speech_recognition as sr
 import pyttsx3
@@ -94,8 +98,7 @@ class DeltaThread(QThread):
         speak("Please tell me the city name.")
         city = self.takecommand()
         if city and city != "none":
-            # IMPORTANT: You need to replace "YOUR_API_KEY" with your actual OpenWeatherMap API key
-            api_key = "YOUR_API_KEY"
+            api_key = os.getenv("OPENWEATHER_API_KEY")
             base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
             try:
                 response = requests.get(base_url)
@@ -116,7 +119,7 @@ class DeltaThread(QThread):
         if not city:
             speak("Please provide a city name, for example: weather in Delhi")
             return
-        api_key = "YOUR_API_KEY"
+        api_key = os.getenv("OPENWEATHER_API_KEY")
         base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
         try:
             response = requests.get(base_url)
