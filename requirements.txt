@@ -1,0 +1,12 @@
+requests
+SpeechRecognition
+pyttsx3
+wikipedia
+pywhatkit
+psutil
+pyjokes
+pyautogui
+opencv-python
+instaloader
+PyPDF2
+PyQt5

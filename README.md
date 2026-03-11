@@ -1,84 +1,186 @@
-# Desktop-Assistant-Delta
-Delta: A powerful and extensible voice-controlled desktop assistant built with Python to automate your daily tasks.
-
 # 🤖 Desktop Assistant Delta
-A comprehensive, voice-controlled desktop assistant built with Python. Delta is designed to perform a wide range of tasks—from simple web searches to system automation—all through voice commands. It features a graphical user interface (GUI) built with PyQt5.
 
-## 📁 File Structure
-```
-/delta-app
-  |-- index.html
-  |--docs
-     |-- System Design
-     |-- Technical Design
-     |-- Logical Design
-     |-- Assumptions
-     |-- Productivity and tools
-     |-- System Automation
-     |-- Web and Information
-  |-- delta.py  
-  |-- main.js   
-  |-- preload.js  
-  |-- package.json 
-  |-- /node_modules - directory - Installed dependencies (npm install electron)
-```
-
-## ✨ Features
--   **🗣️ Voice Control**: Greets you and listens for commands.
--   **🖥️ System Automation**:
-    -   Open applications (Notepad, Command Prompt).
-    -   Control system power (Shutdown, Restart, Sleep).
-    -   Switch between open windows (tab switching).
--   **🌐 Web & Information**:
-    -   Search **Wikipedia** and read summaries.
-    -   Open websites like **Google**, **YouTube**, **Facebook**, **Instagram**, and **ChatGPT**.
-    -   Play songs directly on YouTube.
-    -   Get your public **IP address**.
-    -   Find your approximate **location** based on your IP.
--   **🛠️ Productivity & Tools**:
-    -   Get the current **weather** for your city.
-    -   Send **emails**.
-    -   Perform voice-based **calculations** (e.g., "3 plus 5").
-    -   Take **screenshots** and save them with a custom name.
-    -   Open your **camera**.
-    -   Check **Instagram profiles**.
--   **😂 Entertainment**:
-    -   Tells you a **joke**.
--   **📊 System Monitoring**:
-    -   Reports current **CPU usage**, **RAM usage**, and **battery percentage**.
-
-## Core Libraries
-| Module               | Description                                |
-|----------------------|--------------------------------------------|
-| `pyttsx3`            | Text-to-speech conversion                  |
-| `speech_recognition` | Voice input recognition                    |
-| `webbrowser`         | Open URLs in a browser                     |
-| `wikipedia`          | Wikipedia search                           |
-| `requests`           | Make API and web requests                  |
-| `pywhatkit`          | Send WhatsApp messages, play YouTube       |
-| `pyjokes`            | Generate jokes                             |
-| `PyPDF2`             | Read PDF documents                         |
-| `instaloader`        | Instagram profile and media downloader     |
-| `cv2` (OpenCV)       | Camera interface                           |
-| `psutil`             | System resource monitoring                 |
-| `pyautogui`          | Automation and screenshot                  |
-| `datetime`, `time`   | Handle date/time                           |
-| `os`, `sys`          | System operations                          |
-| `smtplib`            | Email sending with SMTP                    |
-| `operator`           | Arithmetic operator mapping                |
-| `urllib.parse`       | For encoding YouTube Music search URL      |
-| `BeautifulSoup`      | Web scraping                               |
-
-### GUI Modules
-- `PyQt5.QtCore`
-- `PyQt5.QtGui`
-- `PyQt5.QtWidgets`
+Delta is a hybrid desktop assistant that combines an **Electron** frontend with a **Python** backend. The Electron window provides the GUI — a live clock, status indicator, and Start/Stop controls — while the Python script (`delta.py`) handles all voice recognition, text-to-speech, and task execution.
 
 ---
 
-## 🧩 GUI Components (PyQt5)
-- **Main Thread** for updating time
-- **Delta Thread** for continuous voice command listening
-- **Buttons** to start/close assistant
-- **Labels** for displaying animations (GIFs)
-- **Text browser** for current time display
+## 📁 Project Structure
+
+```
+Desktop-Assistant-Delta/
+├── index.html          # Electron UI (clock, status, Start/Stop buttons)
+├── main.js             # Electron main process — spawns delta.py, handles IPC & file dialogs
+├── preload.js          # Electron preload — exposes electronAPI to the renderer
+├── delta.py            # Python backend — voice commands, TTS, all assistant features
+├── package.json        # Node.js project config (Electron dependency)
+├── requirements.txt    # Python dependencies
+├── .gitignore
+└── node_modules/       # Installed by npm install (not committed)
+```
+
+---
+
+## ✨ Features
+
+### 🗣️ Voice & Text Input
+- Listens for voice commands via microphone using Google Speech Recognition.
+- Also accepts text commands sent from the Electron UI via stdin (`TEXT::` protocol).
+- Greets the user based on the time of day (morning / afternoon / evening).
+
+### 🌐 Web & Information
+| Command | Action |
+|---|---|
+| `"wikipedia <topic>"` | Searches Wikipedia and reads a 2-sentence summary |
+| `"open youtube"` | Opens YouTube in the browser |
+| `"open google"` | Searches Google for a spoken query |
+| `"play song on youtube"` | Plays a song on YouTube via pywhatkit |
+| `"ip address"` | Fetches and reads out your public IP address |
+| `"where am i"` | Geolocates you based on your IP address |
+
+### 🌤️ Weather
+| Command | Action |
+|---|---|
+| `"weather"` | Asks for a city and fetches weather from OpenWeatherMap |
+| `"weather in <city>"` *(text)* | Fetches weather for the specified city directly |
+
+> ⚠️ Requires a valid [OpenWeatherMap API key](https://openweathermap.org/api) set in `delta.py`.
+
+### 🖥️ System Automation
+| Command | Action |
+|---|---|
+| `"notepad"` | Opens Notepad |
+| `"open command prompt"` | Opens Command Prompt |
+| `"shut down the system"` | Shuts down the PC after 5 seconds |
+| `"restart the system"` | Restarts the PC after 5 seconds |
+| `"sleep the system"` | Puts the PC into sleep mode |
+| `"switch the window"` | Alt+Tabs to the next window |
+| `"camera"` | Opens webcam feed (press ESC to close) |
+
+### 📊 System Monitoring
+| Command | Action |
+|---|---|
+| `"system status"` | Reports battery %, CPU usage %, and RAM usage % |
+
+### 🛠️ Productivity & Tools
+| Command | Action |
+|---|---|
+| `"calculate <n> plus/minus/times/divided <n>"` | Performs basic arithmetic |
+| `"take screenshot"` | Takes and saves a screenshot with a custom name |
+| `"read pdf"` | Opens a file dialog, then reads a chosen page aloud |
+| `"print document"` | Opens a file dialog and sends a Word doc to the default printer |
+| `"send message"` | Sends a WhatsApp message via pywhatkit |
+| `"instagram profile"` | Opens an Instagram profile; optionally downloads the profile picture |
+
+### 😂 Entertainment
+| Command | Action |
+|---|---|
+| `"tell me a joke"` | Fetches and tells a random joke |
+
+---
+
+## ⚙️ Architecture
+
+```
+Electron (main.js)
+    │
+    ├─ Renders index.html (clock, status, Start/Stop UI)
+    │
+    ├─ On "Start": spawns delta.py as a child process
+    │       │
+    │       ├─ stdout listener → parses SAY:: and OPEN_DIALOG:: signals
+    │       └─ stdin writer   → sends TEXT:: commands and file paths
+    │
+    └─ On "Stop": kills the Python process
+```
+
+**IPC Signals used between Electron and Python:**
+
+| Signal | Direction | Meaning |
+|---|---|---|
+| `TEXT::<message>` | Electron → Python | User typed a message in UI |
+| `SAY::<text>` | Python → Electron | Assistant is speaking |
+| `OPEN_DIALOG::pdf` | Python → Electron | Request to open a PDF file picker |
+| `OPEN_DIALOG::doc` | Python → Electron | Request to open a Word document picker |
+
+---
+
+## 🚀 Setup & Installation
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18+)
+- Python 3.8+
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/Desktop-Assistant-Delta.git
+cd Desktop-Assistant-Delta
+```
+
+### 2. Install Python dependencies
+```bash
+# Create and activate a virtual environment (recommended)
+python -m venv venv
+.\venv\Scripts\activate     # Windows PowerShell
+
+# Install packages
+pip install -r requirements.txt
+```
+
+### 3. Install Node.js dependencies
+```bash
+npm install
+```
+
+### 4. Configure API Key
+Open `delta.py` and replace `"YOUR_API_KEY"` with your [OpenWeatherMap API key](https://openweathermap.org/api):
+```python
+api_key = "YOUR_API_KEY"   # ← replace this
+```
+
+---
+
+## ▶️ Running the App
+
+```bash
+npm start
+```
+
+This launches the Electron window. Click **Start** to activate Delta.
+
+---
+
+## 🛑 Stopping the App
+
+Click the **Stop** button in the Electron window, or close the window entirely — the Python process is automatically terminated.
+
+---
+
+## 📦 Python Dependencies
+
+| Package | Purpose |
+|---|---|
+| `SpeechRecognition` | Microphone voice input |
+| `pyttsx3` | Text-to-speech (offline, SAPI5) |
+| `requests` | Weather, IP, and geolocation API calls |
+| `wikipedia` | Wikipedia search and summaries |
+| `pywhatkit` | WhatsApp messaging, YouTube playback |
+| `psutil` | CPU, RAM, and battery monitoring |
+| `pyjokes` | Random joke generation |
+| `pyautogui` | Screenshots and keyboard automation |
+| `opencv-python` | Webcam / camera feed |
+| `instaloader` | Instagram profile picture download |
+| `PyPDF2` | PDF reading and page extraction |
+| `PyQt5` | GUI framework (optional, wired but not active by default) |
+
+Install all at once:
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 📝 Notes
+
+- **PyQt5 GUI** is imported and partially wired but the Electron window is the active GUI. The PyQt5 code is present for optional future use.
+- **WhatsApp messaging** via `pywhatkit` opens WhatsApp Web — ensure you are logged in.
+- **Instagram downloads** via `instaloader` only work for public profiles without authentication.
