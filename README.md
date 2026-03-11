@@ -43,7 +43,7 @@ Desktop-Assistant-Delta/
 | `"weather"` | Asks for a city and fetches weather from OpenWeatherMap |
 | `"weather in <city>"` *(text)* | Fetches weather for the specified city directly |
 
-> ⚠️ Requires a valid [OpenWeatherMap API key](https://openweathermap.org/api) set in `delta.py`.
+> ⚠️ Requires a valid [OpenWeatherMap API key](https://openweathermap.org/api) set in `.env`.
 
 ### 🖥️ System Automation
 | Command | Action |
