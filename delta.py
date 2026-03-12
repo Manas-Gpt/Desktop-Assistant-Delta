@@ -305,19 +305,22 @@ class DeltaThread(QThread):
                     speak("Sorry sir, I am not able to find where we are due to a network issue.")
 
             elif "instagram profile" in query:
-                speak("Sir, please enter the username in the console.")
-                name = input("Enter username here: ")
-                webbrowser.open(f"https://www.instagram.com/{name}")
-                speak(f"Sir, here is the profile of the user {name}")
-                speak("Would you like to download the profile picture?")
-                condition = self.takecommand()
-                if "yes" in condition:
-                    try:
-                        mod = instaloader.Instaloader()
-                        mod.download_profile(name, profile_pic_only=True)
-                        speak("Done. The profile picture is saved in the main folder.")
-                    except Exception as e:
-                        speak("Sorry, I was unable to download the profile picture.")
+                speak("Should I search by name, or do you have a username?")
+                insta_choice = self.takecommand()
+                if "search" in insta_choice or "name" in insta_choice:
+                    speak("What name should I search for on Instagram?")
+                    search_query = self.takecommand()
+                    if search_query and search_query != "none":
+                        encoded = urllib.parse.quote(search_query)
+                        webbrowser.open(f"https://www.instagram.com/explore/search/?q={encoded}")
+                        speak(f"Here are the Instagram search results for {search_query}.")
+                else:
+                    speak("Please say the Instagram username.")
+                    username = self.takecommand()
+                    if username and username != "none":
+                        username = username.replace(" ", "").lower()
+                        webbrowser.open(f"https://www.instagram.com/{username}")
+                        speak(f"Opening the Instagram profile of {username}.")
 
             elif "take screenshot" in query:
                 speak("Sir, what should I name this screenshot file?")
