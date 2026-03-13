@@ -77,6 +77,47 @@ Desktop-Assistant-Delta/
 |---|---|
 | `"tell me a joke"` | Fetches and tells a random joke |
 
+### 🖥️ Open Any App
+| Command | Action |
+|---|---|
+| `"open Spotify"` | Launches Spotify (or any app in your system PATH) |
+| `"open calculator"` | Opens Windows Calculator |
+| `"open chrome"` | Opens Google Chrome |
+
+> Works with any app name recognized by your system. Tries `subprocess.Popen` first, then falls back to `os.startfile`.
+
+### 📋 Clipboard
+| Command | Action |
+|---|---|
+| `"copy to clipboard"` | Asks what to copy, then saves it to clipboard |
+| `"read clipboard"` | Reads out the current clipboard content |
+
+### 📖 Dictionary
+| Command | Action |
+|---|---|
+| `"meaning of serendipity"` | Looks up and reads the definition (uses free dictionaryapi.dev — no key needed) |
+
+### ⌨️ Type / Dictate Text
+| Command | Action |
+|---|---|
+| `"type good morning"` | Types the spoken text into the currently focused window |
+
+> Uses clipboard + Ctrl+V for reliable Unicode support.
+
+### 🌍 Translate Text
+| Command | Action |
+|---|---|
+| `"translate bonjour to English"` | Translates any text to the target language using Google Translate |
+| `"translate hello to French"` | Supports all languages supported by Google Translate |
+
+### 🔊 Volume Control
+| Command | Action |
+|---|---|
+| `"mute"` | Mutes system audio |
+| `"unmute"` | Unmutes system audio |
+| `"increase volume"` / `"volume up"` | Increases system volume by 10% |
+| `"decrease volume"` / `"volume down"` | Decreases system volume by 10% |
+
 ---
 
 ## ⚙️ Architecture
@@ -133,9 +174,9 @@ npm install
 ```
 
 ### 4. Configure API Key
-Open `delta.py` and replace `"YOUR_API_KEY"` with your [OpenWeatherMap API key](https://openweathermap.org/api):
-```python
-api_key = "YOUR_API_KEY"   # ← replace this
+Create a `.env` file in the project root (copy from the template below) and add your [OpenWeatherMap API key](https://openweathermap.org/api):
+```
+OPENWEATHER_API_KEY=your_api_key_here
 ```
 
 ---
@@ -162,16 +203,21 @@ Click the **Stop** button in the Electron window, or close the window entirely �
 |---|---|
 | `SpeechRecognition` | Microphone voice input |
 | `pyttsx3` | Text-to-speech (offline, SAPI5) |
-| `requests` | Weather, IP, and geolocation API calls |
+| `requests` | Weather, IP, geolocation, and dictionary API calls |
 | `wikipedia` | Wikipedia search and summaries |
 | `pywhatkit` | WhatsApp messaging, YouTube playback |
 | `psutil` | CPU, RAM, and battery monitoring |
 | `pyjokes` | Random joke generation |
 | `pyautogui` | Screenshots and keyboard automation |
 | `opencv-python` | Webcam / camera feed |
-| `instaloader` | Loads Instagram profile |
+| `instaloader` | Instagram profile loader |
 | `PyPDF2` | PDF reading and page extraction |
 | `PyQt5` | GUI framework (optional, wired but not active by default) |
+| `python-dotenv` | Loads API keys from `.env` file |
+| `pyperclip` | Clipboard read/write |
+| `deep-translator` | Text translation via Google Translate |
+| `pycaw` | Windows system volume and mute control |
+| `comtypes` | Required by pycaw for Windows COM interface |
 
 Install all at once:
 ```bash
@@ -184,4 +230,6 @@ pip install -r requirements.txt
 
 - **PyQt5 GUI** is imported and partially wired but the Electron window is the active GUI. The PyQt5 code is present for optional future use.
 - **WhatsApp messaging** via `pywhatkit` opens WhatsApp Web — ensure you are logged in.
-- **Instagram downloads** via `instaloader` only work for public profiles without authentication.
+- **Instagram** search opens Instagram's explore page; direct profile open works by exact username.
+- **Volume control** (`pycaw`) is Windows-only.
+- **Type text** uses clipboard + Ctrl+V internally for reliable Unicode support.

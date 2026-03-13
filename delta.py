@@ -1,4 +1,4 @@
-# ================================== IMPORTS ==================================
+# IMPORTS
 import sys
 import re
 import threading
@@ -24,11 +24,17 @@ import instaloader
 import PyPDF2
 import operator
 import urllib.parse
+import subprocess
+import pyperclip
+from deep_translator import GoogleTranslator
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+from ctypes import cast, POINTER
+from comtypes import CLSCTX_ALL
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer, QTime, Qt
 from PyQt5.QtGui import QMovie
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
-# ============================= ENGINE SETUP =================================
+# ENGINE SETUP
 # Initialize the text-to-speech engine
 engine = pyttsx3.init('sapi5')
 voices = engine.getProperty('voices')
@@ -45,7 +51,7 @@ def speak(audio):
     print(f"SAY::{audio}")
     sys.stdout.flush()
 
-# ============================ MAIN GUI THREAD ===============================
+# MAIN GUI THREAD
 # This class is for updating the time on the GUI. It's kept separate.
 class MainThread(QThread):
     update_time = pyqtSignal(str)
@@ -56,7 +62,7 @@ class MainThread(QThread):
             self.update_time.emit(current_time)
             time.sleep(1) # Update time every second
 
-# ============================= DELTA ASSISTANT THREAD =======================
+# DELTA ASSISTANT THREAD
 class DeltaThread(QThread):
     """
     Runs the assistant's core logic in a separate thread
@@ -194,7 +200,37 @@ class DeltaThread(QThread):
         except Exception as e:
             speak("I encountered an error while trying to print the document.")
             print(f"Printing Error: {e}")
-            
+
+    # VOLUME CONTROL HELPERS
+    def _get_volume_interface(self):
+        """Returns the Windows audio endpoint volume interface."""
+        devices = AudioUtilities.GetSpeakers()
+        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        return cast(interface, POINTER(IAudioEndpointVolume))
+
+    def control_volume(self, action):
+        """Mute, unmute, increase, or decrease system volume."""
+        try:
+            vol = self._get_volume_interface()
+            current = vol.GetMasterVolumeLevelScalar()
+            if action == "mute":
+                vol.SetMute(1, None)
+                speak("System muted.")
+            elif action == "unmute":
+                vol.SetMute(0, None)
+                speak("System unmuted.")
+            elif action == "increase":
+                new_vol = min(1.0, current + 0.1)
+                vol.SetMasterVolumeLevelScalar(new_vol, None)
+                speak(f"Volume increased to {int(new_vol * 100)} percent.")
+            elif action == "decrease":
+                new_vol = max(0.0, current - 0.1)
+                vol.SetMasterVolumeLevelScalar(new_vol, None)
+                speak(f"Volume decreased to {int(new_vol * 100)} percent.")
+        except Exception as e:
+            speak("Sorry, I was unable to control the volume.")
+            print(f"Volume Error: {e}")
+
     def run(self):
         """The main loop for the assistant."""
         self.wish()
@@ -373,11 +409,89 @@ class DeltaThread(QThread):
                 except Exception:
                     speak("I was unable to understand the calculation.")
 
+            # OPEN ANY APP
+            elif query.startswith("open "):
+                app_name = query.replace("open ", "", 1).strip()
+                try:
+                    subprocess.Popen([app_name])
+                    speak(f"Opening {app_name}.")
+                except FileNotFoundError:
+                    try:
+                        os.startfile(app_name)
+                        speak(f"Opening {app_name}.")
+                    except Exception:
+                        speak(f"Sorry, I couldn't find {app_name} on your system.")
+
+            # CLIPBOARD
+            elif "copy to clipboard" in query:
+                speak("What should I copy to the clipboard?")
+                content = self.takecommand()
+                if content and content != "none":
+                    pyperclip.copy(content)
+                    speak("Copied to clipboard.")
+
+            elif "read clipboard" in query or "what's in my clipboard" in query:
+                content = pyperclip.paste()
+                if content:
+                    speak(f"Your clipboard contains: {content}")
+                else:
+                    speak("Your clipboard is empty.")
+
+            # DICTIONARY
+            elif "meaning of" in query:
+                word = query.replace("meaning of", "").strip()
+                if word:
+                    try:
+                        response = requests.get(
+                            f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+                        )
+                        data = response.json()
+                        meaning = data[0]['meanings'][0]['definitions'][0]['definition']
+                        speak(f"The meaning of {word} is: {meaning}")
+                    except Exception:
+                        speak(f"Sorry, I couldn't find the meaning of {word}.")
+
+            # TYPE / DICTATE TEXT
+            elif query.startswith("type "):
+                text_to_type = query.replace("type ", "", 1).strip()
+                if text_to_type:
+                    speak(f"Typing: {text_to_type}")
+                    pyperclip.copy(text_to_type)
+                    time.sleep(1)
+                    pyautogui.hotkey('ctrl', 'v')
+
+            # TRANSLATE TEXT 
+            elif "translate" in query and " to " in query:
+                try:
+                    m = re.search(r"translate (.+) to (\w+)", query)
+                    if m:
+                        text  = m.group(1).strip()
+                        lang  = m.group(2).strip()
+                        translated = GoogleTranslator(source='auto', target=lang).translate(text)
+                        speak(f"The translation is: {translated}")
+                    else:
+                        speak("Please say: translate hello to French.")
+                except Exception:
+                    speak("Sorry, I was unable to translate that.")
+
+            # VOLUME CONTROL
+            elif "mute" in query and "unmute" not in query:
+                self.control_volume("mute")
+
+            elif "unmute" in query:
+                self.control_volume("unmute")
+
+            elif "increase volume" in query or "volume up" in query:
+                self.control_volume("increase")
+
+            elif "decrease volume" in query or "volume down" in query:
+                self.control_volume("decrease")
+
             elif "no thanks" in query or "exit" in query or "goodbye" in query:
                 speak("Thank you for using me. Have a good day, sir.")
                 sys.exit()
 
-    # -------------------------- TEXT CHAT HANDLER ---------------------------
+    # TEXT CHAT HANDLER
     def handle_text_command(self, text):
         """Processes a text command coming from Electron (stdin)."""
         if not text:
@@ -454,7 +568,7 @@ class DeltaThread(QThread):
         # fallback
         speak(f"You said: {text}. I can do things like 'weather in Delhi', 'wikipedia Ada Lovelace', 'search quantum computing', or 'joke'.")
 
-# ================================ MAIN GUI CLASS ============================
+# MAIN GUI CLASS 
 # NOTE: To run the GUI, you must have a 'deltaUi.py' file generated from a .ui file.
 # from deltaUi import Ui_deltaUi 
 
@@ -485,7 +599,7 @@ class Main(QMainWindow):
         # self.ui.textBrowser_2.setText(current_time)
         pass
 
-# ============================= SCRIPT ENTRY POINT ===========================
+# SCRIPT ENTRY POINT
 if __name__ == "__main__":
     # Start stdin listener thread for TEXT:: messages from Electron
     assistant = DeltaThread()
