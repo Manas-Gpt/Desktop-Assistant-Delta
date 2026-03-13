@@ -69,7 +69,8 @@ Desktop-Assistant-Delta/
 | `"read pdf"` | Opens a file dialog, then reads a chosen page aloud |
 | `"print document"` | Opens a file dialog and sends a Word doc to the default printer |
 | `"send message"` | Sends a WhatsApp message via pywhatkit |
-| `"instagram profile"` | Opens an Instagram profile; optionally downloads the profile picture |
+| `"instagram profile"` | Opens/searches an Instagram profile |
+| `"find <location>"` | Searches Google Maps for the specified location |
 
 ### ðŸ˜‚ Entertainment
 | Command | Action |
@@ -168,7 +169,7 @@ Click the **Stop** button in the Electron window, or close the window entirely â
 | `pyjokes` | Random joke generation |
 | `pyautogui` | Screenshots and keyboard automation |
 | `opencv-python` | Webcam / camera feed |
-| `instaloader` | Instagram profile picture download |
+| `instaloader` | Loads Instagram profile |
 | `PyPDF2` | PDF reading and page extraction |
 | `PyQt5` | GUI framework (optional, wired but not active by default) |
 

@@ -304,6 +304,15 @@ class DeltaThread(QThread):
                 except Exception as e:
                     speak("Sorry sir, I am not able to find where we are due to a network issue.")
 
+            elif query.startswith("find "):
+                location = query.replace("find ", "", 1).strip()
+                if location:
+                    encoded = urllib.parse.quote(location)
+                    webbrowser.open(f"https://www.google.com/maps/search/{encoded}")
+                    speak(f"Opening Google Maps for {location}.")
+                else:
+                    speak("Please say the location you want me to find.")
+
             elif "instagram profile" in query:
                 speak("Should I search by name, or do you have a username?")
                 insta_choice = self.takecommand()
