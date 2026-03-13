@@ -11,4 +11,8 @@ instaloader
 PyPDF2
 PyQt5
 python-dotenv
+pyperclip
+deep-translator
+pycaw
+comtypes
 openai
