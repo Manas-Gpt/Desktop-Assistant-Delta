@@ -11,3 +11,4 @@ instaloader
 PyPDF2
 PyQt5
 python-dotenv
+openai
