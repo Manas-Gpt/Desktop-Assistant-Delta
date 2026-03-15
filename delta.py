@@ -19,6 +19,7 @@ import smtplib
 import psutil
 import pyjokes
 import pyautogui
+import pyaudio
 import cv2
 import instaloader
 import PyPDF2
